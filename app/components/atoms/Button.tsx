@@ -37,7 +37,7 @@ export default function Button({
    * Absolute positioning
    */
   const absoluteStyles: ViewStyle = absolute
-    ? { position: "absolute", bottom: 20, left: 20, right: 20 }
+    ? { position: "absolute", bottom: 45, left: 20, right: 20 }
     : {};
 
   return (
