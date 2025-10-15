@@ -12,11 +12,11 @@ import ExpandableForm from "./components/form/ExpandableForm";
 import Graph from "./components/graph/Graph";
 import TotalHours from "./components/total-hours/TotalHours";
 import {
-  addWorkEntries,
-  deleteEntry,
-  getEntriesByMonth,
-  initDB,
-  WorkEntry
+    addWorkEntries,
+    deleteEntry,
+    getEntriesByMonth,
+    initDB,
+    WorkEntry
 } from "./db/WorkerEntriesService";
 import useTorokaFonts from "./hooks/useToroka";
 import DefaultTheme from "./theme/DefaultTheme";

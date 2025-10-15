@@ -1,6 +1,6 @@
 import DefaultTheme from "@/app/theme/DefaultTheme";
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { Text, View } from "react-native";
 import { Badge } from "../badge/Badge";
 import TotalMoney from "../organisms/TotalMoney";
@@ -21,74 +21,62 @@ interface TotalHoursProps {
 }
 
 export default function TotalHours({ entries, dbReady }: TotalHoursProps) {
-  const [currentMonthEntries, setCurrentMonthEntries] = useState<WorkEntry[]>([]);
-  const [monthlyHours, setMonthlyHours] = useState(0);
-  const [weeklyHours, setWeeklyHours] = useState(0);
-  const [todayHours, setTodayHours] = useState(0);
-  const [monthlyMoney, setMonthlyMoney] = useState(0);
+  const { monthlyHours, weeklyHours, todayHours, monthlyMoney } = useMemo(() => {
+    if (!dbReady || !entries || entries.length === 0) {
+      return { monthlyHours: 0, weeklyHours: 0, todayHours: 0, monthlyMoney: 0 };
+    }
 
+    // Find the latest entry to determine the month/year
+    const latestEntryDate = new Date(Math.max(...entries.map(e => new Date(e.date).getTime())));
+    const targetMonth = latestEntryDate.getMonth();
+    const targetYear = latestEntryDate.getFullYear();
 
-  useEffect(() => {
-    if (!dbReady || !entries) return;
-
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
+    // Filter entries for that month/year
     const monthEntries = entries.filter(entry => {
-      const entryDate = new Date(entry.date);
-      return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear;
+      const d = new Date(entry.date);
+      return d.getFullYear() === targetYear && d.getMonth() === targetMonth;
     });
 
-    setCurrentMonthEntries(monthEntries);
-  }, [dbReady, entries]);
+    let monthlyHours = 0;
+    let monthlyMoney = 0;
+    let weeklyHours = 0;
+    let todayHours = 0;
 
-
-  useEffect(() => {
-
-    const now = new Date();
-    const today = now.getDate();
     const dailyMap: { [day: number]: number } = {};
 
-    let totalHours = 0;
-    let totalMoney = 0;
-
-    currentMonthEntries.forEach(entry => {
-      const entryDate = new Date(entry.date);
-      const day = entryDate.getDate();
-
+    monthEntries.forEach(entry => {
+      const d = new Date(entry.date);
+      const day = d.getDate();
       const hours = entry.hoursWorkedPerDay + (entry.hoursWorkedPerDayExtra ?? 0);
-      const money =
-        entry.hoursWorkedPerDay * entry.moneyPerHour +
-        (entry.hoursWorkedPerDayExtra ?? 0) * (entry.moneyPerHourExtra ?? 0);
+      const money = entry.hoursWorkedPerDay * entry.moneyPerHour +
+                    (entry.hoursWorkedPerDayExtra ?? 0) * (entry.moneyPerHourExtra ?? 0);
 
-      totalHours += hours;
-      totalMoney += money;
+      monthlyHours += hours;
+      monthlyMoney += money;
 
       dailyMap[day] = (dailyMap[day] || 0) + hours;
     });
 
-    setMonthlyHours(totalHours);
-    setMonthlyMoney(totalMoney);
-
-
-    const dayOfWeek = now.getDay(); // 0 = Sunday
+    // Weekly hours based on the week of the latest entry
+    const dayOfWeek = latestEntryDate.getDay(); // 0 = Sunday
+    const today = latestEntryDate.getDate();
     const firstDayOfWeek = today - (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-    let weekTotal = 0;
+
     for (let i = firstDayOfWeek; i <= today; i++) {
-      weekTotal += dailyMap[i] || 0;
+      weeklyHours += dailyMap[i] || 0;
     }
-    setWeeklyHours(weekTotal);
 
+    todayHours = dailyMap[today] || 0;
 
-    setTodayHours(dailyMap[today] || 0);
+    return { monthlyHours, weeklyHours, todayHours, monthlyMoney };
+  }, [entries, dbReady]);
 
-  }, [currentMonthEntries]);
+  if (!dbReady) return null;
 
   return (
     <View style={{ marginLeft: 20, marginRight: 20, marginTop: 60 }}>
       <Text style={{ color: DefaultTheme.colors.text, fontSize: 20, fontFamily: "Toroka-Regular" }}>
-        Este mes tienes
+        Horas trabajadas
       </Text>
 
       <View style={{ alignItems: "center", flexDirection: "row", gap: 2 }}>
@@ -103,7 +91,6 @@ export default function TotalHours({ entries, dbReady }: TotalHoursProps) {
         </View>
       </View>
 
-      
       <View style={{ flexDirection: 'row', justifyContent: "space-between", alignItems: "center", marginTop: 50 }}>
         <View style={{ flexDirection: 'column', gap: 10 }}>
           <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }}>
